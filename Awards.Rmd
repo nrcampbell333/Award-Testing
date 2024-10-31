@@ -1,0 +1,161 @@
+---
+title: "Awards Testing"
+output: html_document
+date: "2024-10-31"
+---
+reading in the dataset
+```{r setup, include=FALSE}
+awards = read.csv("/Users/najaecampbell/Desktop/award.csv")
+str(awards)
+summary(awards)
+```
+
+
+This visualization provides a clear bar chart illustrating the distribution of award types within our dataset, highlighting the count of each award. I don't think this is the best way to visualise distribution of each award more so because it causes the audience to have to turn their head. Wouldnt bee good in a stakeholder meeting.
+```{r cars}
+library(ggplot2)
+ggplot(awards, aes(x = Award)) +
+  geom_bar(fill = "blue") +
+  labs(title = "Count of Each Award Type", x = "Award Type", y = "Count") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+This bar chart illustrates the number of winners over the years, segmented by the winning status, with different colors representing winners and non-winners. Reeadability is a bit low with how the years are jumbled together.
+```{r pressure, echo=FALSE}
+ggplot(awards, aes(x = Year, fill = as.factor(Winner))) +
+  geom_bar(position = "stack") +
+  labs(title = "Number of Winners Over the Years", x = "Year", y = "Count", fill = "Winner") +
+  scale_fill_manual(values = c("0" = "grey", "1" = "gold")) +
+  theme_minimal()
+```
+This visualization presents the top 10 award recipients based on the number of wins, showcasing the names of the recipients on the y-axis and their corresponding win counts on the x-axis. By flipping the coordinates and using a deep sky blue color for the bars, we enhance clarity and allow stakeholders to easily identify the most successful individuals in the dataset at a glance. This is a great way to display data.
+```{r}
+library(dplyr)
+top_winners <- awards %>%
+  filter(Winner == 1) %>%
+  count(Name, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(top_winners, aes(x = reorder(Name, n), y = n)) +
+  geom_bar(stat = "identity", fill = "deepskyblue4") +
+  labs(title = "Top 10 Award Recipients", x = "Name", y = "Number of Wins") +
+  coord_flip()
+```
+
+This histogram visualizes the distribution of awards over the years, with the x-axis representing the years and the y-axis indicating the count of awards for each year. The chart effectively highlights trends in award distributions, allowing stakeholders to quickly assess the frequency of awards given across different years in a clean and minimalistic format. I would be more mindful of bin width sensitivity if I was going to display data like this. Sometimes it might be hard to interpret.
+```{r}
+awards$Year = as.numeric(awards$Year)
+library(ggplot2)
+ggplot(awards, aes(x = Year)) +
+  geom_histogram(binwidth = 1, fill = "cornflowerblue", color = "black") +
+  labs(title = "Distribution of Awards by Year", x = "Year", y = "Count") +
+  theme_minimal()
+```
+I don't like this one. This visualization displays the proportion of winners for each award type, with the x-axis representing different award types and the y-axis showing the percentage of winners. The chart doesn't give enough context for us to fully interpret this data. Good experiment but wouldn't use this one.
+```{r}
+awards %>%
+  group_by(Award) %>%
+  summarise(winner_percentage = mean(Winner == 1, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(Award, winner_percentage), y = winner_percentage)) +
+  geom_col(fill = "brown") +
+  coord_flip() +
+  labs(title = "Proportion of Winners by Award Type", x = "Award Type", y = "Winner Percentage") +
+  theme_minimal()
+
+```
+Solid graph. Easy to interpret. This visualization highlights the top 10 most awarded films. 
+```{r}
+top_films = awards %>%
+  filter(Winner == 1) %>%
+  count(Film, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(top_films, aes(x = reorder(Film, n), y = n)) +
+  geom_bar(stat = "identity", fill = "gold") +
+  coord_flip() +
+  labs(title = "Top 10 Most Awarded Films", x = "Film", y = "Number of Wins")
+```
+
+I dont know where I went wrong here, but I wouldn't use this at all.
+```{r}
+awards = awards %>% filter(!is.na(Year))
+awards %>%
+  group_by(Year, Award) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = Year, y = count, color = Award)) +
+  geom_line() +
+  labs(title = "Number of Awards by Category Over Time", x = "Year", y = "Count") +
+  theme_minimal()
+```
+This stacked bar chart illustrates the distribution of winners versus nominees over the years, with the x-axis representing the years and the y-axis showing the proportion of each category. Big downfall here is  the chart shows proportions, it does not convey the actual counts of winners and nominees, which can be important for understanding the overall context of the data. 
+```{r}
+awards %>%
+  mutate(WinnerStatus = ifelse(Winner == 1, "Winner", "Nominee")) %>%
+  ggplot(aes(x = Year, fill = WinnerStatus)) +
+  geom_bar(position = "fill") +
+  labs(title = "Distribution of Winners vs. Nominees Over Years", x = "Year", y = "Proportion") +
+  scale_fill_manual(values = c("Nominee" = "lightgrey", "Winner" = "gold")) +
+  theme_minimal()
+
+```
+
+This scatter plot visualizes the winning trends of the top five award recipients over the years, with the x-axis representing the years and the y-axis displaying the names of the recipients. Each point represents a win, and different colors are used to distinguish between the top recipients, allowing stakeholders to easily track individual performance and trends over time. In this case, it doesn't matter but a downfall could be that data has a high possibility of overlapping if there's multiple winners have wins in the same year.
+```{r}
+top_names = awards %>%
+  filter(Winner == 1) %>%
+  count(Name, sort = TRUE) %>%
+  top_n(5) %>%
+  pull(Name)
+awards %>%
+  filter(Name %in% top_names & Winner == 1) %>%
+  ggplot(aes(x = Year, y = Name, color = Name)) +
+  geom_point(size = 3) +
+  labs(title = "Winning Trends of Top Award Recipients Over the Years", x = "Year", y = "Name") +
+  theme_minimal()
+```
+Easy to interpret but not one of my strongest graph. 
+```{r}
+awards %>%
+  mutate(Decade = floor(Year / 10) * 10) %>%
+  group_by(Decade) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = Decade, y = count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Award Count by Decade", x = "Decade", y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+awards = awards %>% 
+  filter(!is.na(Winner) & !is.na(Year) & !is.na(Ceremony))
+library(dplyr)
+library(randomForest)
+print(sum(is.na(awards$Winner)))
+print(sum(is.na(awards$Year)))
+print(sum(is.na(awards$Ceremony)))
+awards = awards %>% 
+  filter(!is.na(Winner) & !is.na(Year) & !is.na(Ceremony))
+```
+
+randomforest is not the best model to run here for predicting the Winner variable.
+```{r}
+rf_model = randomForest(Winner ~ Year + Ceremony, data = awards)
+print(rf_model)
+awards$rf_predicted_winner = predict(rf_model, awards)
+head(awards[, c("Year", "Winner", "rf_predicted_winner")])
+```
+With so many categories in year and even ceremony, maybe this model is a little too simple for this dataset.
+```{r}
+model_logistic = glm(Winner ~ Year + Ceremony, family = binomial, data = awards)
+summary(model_logistic)
+```
+
+XGBoost usually works well in my experience. I believe this indicate strong predictive capability for determining winners in the awards dataset. I would develop more on this in the future. Might be the best model I have ran so far.
+```{r}
+library(xgboost)
+dtrain = xgb.DMatrix(data = model.matrix(Winner ~ Year + Ceremony, data = awards), label = awards$Winner)
+model_xgb = xgboost(dtrain, max_depth = 3, eta = 0.1, nrounds = 200, objective = "binary:logistic")
+```
+
